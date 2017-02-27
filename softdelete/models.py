@@ -45,9 +45,15 @@ def _determine_change_set(obj, create=True):
 
 
 class SoftDeleteQuerySet(query.QuerySet):
+    soft_delete_queryset = None
+
+    def __init__(self, *args, **kwargs):
+        super(SoftDeleteQuerySet, self).__init__(*args, **kwargs)
+        self.soft_delete_queryset = SoftDeleteQuerySet
+
     def all_with_deleted(self):
         qs = super(SoftDeleteQuerySet, self).all()
-        qs.__class__ = SoftDeleteQuerySet
+        qs.__class__ = self.soft_delete_queryset
         return qs
 
     def delete(self, using='default', *args, **kwargs):
@@ -71,6 +77,7 @@ class SoftDeleteQuerySet(query.QuerySet):
 
 
 class SoftDeleteManager(models.Manager):
+    soft_delete_queryset = SoftDeleteQuerySet
 
     def _get_base_queryset(self):
         '''
@@ -97,13 +104,13 @@ class SoftDeleteManager(models.Manager):
     def get_query_set(self):
         qs = super(SoftDeleteManager, self).get_query_set().filter(
             deleted_at__isnull=True)
-        qs.__class__ = SoftDeleteQuerySet
+        qs.__class__ = self.soft_delete_queryset
         return qs
 
     def get_queryset(self):
         qs = super(SoftDeleteManager, self).get_queryset().filter(
             deleted_at__isnull=True)
-        qs.__class__ = SoftDeleteQuerySet
+        qs.__class__ = self.soft_delete_queryset
         return qs
 
     def all_with_deleted(self, prt=False):
@@ -111,12 +118,12 @@ class SoftDeleteManager(models.Manager):
             qs = self._get_base_queryset().filter(**self.core_filters)
         else:
             qs = self._get_base_queryset()
-        qs.__class__ = SoftDeleteQuerySet
+        qs.__class__ = self.soft_delete_queryset
         return qs
 
     def deleted_set(self):
         qs = self._get_base_queryset().filter(deleted_at__isnull=0)
-        qs.__class__ = SoftDeleteQuerySet
+        qs.__class__ = self.soft_delete_queryset
         return qs
 
     def get(self, *args, **kwargs):
@@ -130,7 +137,7 @@ class SoftDeleteManager(models.Manager):
             qs = self.all_with_deleted().filter(*args, **kwargs)
         else:
             qs = self._get_self_queryset().filter(*args, **kwargs)
-        qs.__class__ = SoftDeleteQuerySet
+        qs.__class__ = self.soft_delete_queryset
         return qs
 
 
